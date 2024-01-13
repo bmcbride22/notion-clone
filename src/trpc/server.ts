@@ -11,6 +11,7 @@ import { type TRPCErrorResponse } from "@trpc/server/rpc";
 import { cookies } from "next/headers";
 import { cache } from "react";
 
+import { auth } from "@clerk/nextjs";
 import { appRouter, type AppRouter } from "~/server/api/root";
 import { createTRPCContext } from "~/server/api/trpc";
 import { transformer } from "./shared";
@@ -25,6 +26,7 @@ const createContext = cache(() => {
       cookie: cookies().toString(),
       "x-trpc-source": "rsc",
     }),
+    auth: auth(),
   });
 });
 
