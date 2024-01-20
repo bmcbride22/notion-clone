@@ -6,12 +6,11 @@
  * TL;DR - This is where all the tRPC server stuff is created and plugged in. The pieces you will
  * need to use are documented accordingly near the end.
  */
-
 import {
   type SignedInAuthObject,
   type SignedOutAuthObject,
 } from "@clerk/nextjs/server";
-import { TRPCError, initTRPC, type inferAsyncReturnType } from "@trpc/server";
+import { TRPCError, initTRPC } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
 import { db } from "../db";
@@ -28,43 +27,14 @@ import { db } from "../db";
  *
  * @see https://trpc.io/docs/server/context
  */
-export interface AuthContext {
-  auth: SignedInAuthObject | SignedOutAuthObject;
-}
 
-export const createContextInner = async ({ auth }: AuthContext) => {
-  return {
-    auth,
-  };
-};
-export const createTRPCContext = async (opts: {
-  headers: Headers;
-  auth: AuthContext["auth"];
-}) => {
+type AuthContext = SignedInAuthObject | SignedOutAuthObject;
+export const createTRPCContext = async (opts: { auth: AuthContext }) => {
   return {
     db,
-    auth: opts.auth,
-    headers: opts.headers,
+    ...opts,
   };
 };
-// export const createTRPCContext = async (opts: CreateNextContextOptions) => {
-//   const { auth, db } = await createContextInner({ auth: getAuth(opts.req) });
-//   return {
-//     ...opts,
-//     auth,
-//     db,
-//   };
-// };
-
-export type Context = inferAsyncReturnType<typeof createTRPCContext>;
-
-// export const createTRPCContext = async (opts: { headers: Headers }) => {
-//   return {
-//     db,
-//     auth,
-//     ...opts,
-//   };
-// };
 
 /**
  * 2. INITIALIZATION
@@ -86,7 +56,6 @@ const t = initTRPC.context<typeof createTRPCContext>().create({
     };
   },
 });
-
 /**
  * Create a server-side caller
  * @see https://trpc.io/docs/server/server-side-calls
@@ -94,12 +63,13 @@ const t = initTRPC.context<typeof createTRPCContext>().create({
 export const createCallerFactory = t.createCallerFactory;
 
 const isAuthed = t.middleware(({ next, ctx }) => {
-  if (!ctx.auth.session || !ctx.auth.user) {
+  if (!ctx.auth.sessionId || !ctx.auth.userId) {
     throw new TRPCError({ code: "UNAUTHORIZED" });
   }
   return next({
     ctx: {
       auth: ctx.auth,
+      db: ctx.db,
     },
   });
 });

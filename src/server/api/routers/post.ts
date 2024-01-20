@@ -1,3 +1,4 @@
+import { currentUser } from "@clerk/nextjs";
 import { z } from "zod";
 
 import {
@@ -10,8 +11,9 @@ import { posts } from "~/server/db/schema";
 export const postRouter = createTRPCRouter({
   hello: publicProcedure
     .input(z.object({ text: z.string() }))
-    .query(({ input }) => {
+    .query(({ ctx, input }) => {
       return {
+        ctx,
         greeting: `Hello ${input.text}`,
       };
     }),
@@ -24,17 +26,20 @@ export const postRouter = createTRPCRouter({
 
       await ctx.db.insert(posts).values({
         name: input.name,
-        createdById: ctx.session.user.id,
+        createdById: ctx.auth.userId,
       });
     }),
 
-  getLatest: publicProcedure.query(({ ctx }) => {
+  getLatest: protectedProcedure.query(async ({ ctx }) => {
+    const user = await currentUser();
+    console.log("Context", ctx.auth, user);
+
     return ctx.db.query.posts.findFirst({
       orderBy: (posts, { desc }) => [desc(posts.createdAt)],
     });
   }),
 
-  getSecretMessage: protectedProcedure.query(() => {
+  getSecretMessage: protectedProcedure.query((ctx) => {
     return "you can now see this secret message!";
   }),
 });

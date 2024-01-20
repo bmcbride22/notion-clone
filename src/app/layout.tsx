@@ -4,6 +4,8 @@ import { Inter } from "next/font/google";
 import { cookies } from "next/headers";
 
 import { ClerkProvider } from "@clerk/nextjs";
+import { ThemeProvider } from "~/components/ThemeProvider";
+import { Toaster } from "~/components/ui/sonner";
 import { TRPCReactProvider } from "~/trpc/react";
 
 const inter = Inter({
@@ -23,14 +25,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ClerkProvider>
-      <html lang="en">
-        <body className={`font-sans ${inter.variable}`}>
-          <TRPCReactProvider cookies={cookies().toString()}>
-            {children}
-          </TRPCReactProvider>
-        </body>
-      </html>
-    </ClerkProvider>
+    <html lang="en">
+      <body className={`font-sans ${inter.variable}`}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <ClerkProvider>
+            <TRPCReactProvider cookies={cookies().toString()}>
+              {children}
+            </TRPCReactProvider>
+          </ClerkProvider>
+          <Toaster />
+        </ThemeProvider>
+      </body>
+    </html>
   );
 }
